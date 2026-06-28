@@ -115,6 +115,10 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Samsung One'
 .empty{font-size:14px;color:#bbb;padding:24px 0;text-align:center}
 .fab{position:fixed;bottom:calc(max(env(safe-area-inset-bottom),16px) + 12px);right:20px;width:50px;height:50px;border-radius:25px;background:#1c3d6e;color:#fff;font-size:22px;border:none;box-shadow:0 4px 14px rgba(28,61,110,0.4);cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:100;-webkit-appearance:none}
 .fab:active{transform:scale(0.93)}
+.mic-btn{background:none;border:none;color:rgba(255,255,255,0.65);font-size:19px;cursor:pointer;padding:4px 2px;min-width:30px;line-height:1;flex-shrink:0;transition:color .2s;-webkit-appearance:none}
+.mic-btn:active{color:#fff}
+.mic-btn.listening{color:#ff5252;animation:micpulse 1s ease-in-out infinite}
+@keyframes micpulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.5;transform:scale(1.15)}}
 
 #lockWrap{position:fixed;inset:0;background:#1c3d6e;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px}
 #lockWrap.hidden{display:none}
@@ -175,6 +179,7 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Samsung One'
     <div class="search-box">
       <span style="font-size:16px;opacity:0.7">🔍</span>
       <input type="search" id="qi" placeholder="대상물명, 용도, 주소 검색..." oninput="render()" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+      <button class="mic-btn" id="micBtn" onclick="startVoice()" title="음성 검색">🎤</button>
     </div>
   </div>
   <div class="filter-bar">
@@ -401,6 +406,34 @@ function _redrawDetail(nm){
   card.replaceChild(newDet,det);
 }
 function esc(s){return s.replace(/\\/g,'\\\\').replace(/'/g,"\\'")}
+function startVoice(){
+  var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){
+    alert('음성 검색을 지원하지 않는 브라우저입니다.\n아이폰: Safari / 안드로이드: Chrome을 사용해주세요.');
+    return;
+  }
+  var btn=document.getElementById('micBtn');
+  var inp=document.getElementById('qi');
+  if(btn._rec){try{btn._rec.stop();}catch(e){}btn._rec=null;return;}
+  var r=new SR();
+  r.lang='ko-KR';
+  r.interimResults=true;
+  r.maxAlternatives=1;
+  btn._rec=r;
+  btn.classList.add('listening');
+  btn.textContent='🔴';
+  r.onresult=function(e){
+    var t=e.results[0][0].transcript;
+    inp.value=t;
+    render();
+  };
+  r.onerror=function(e){
+    if(e.error==='not-allowed')alert('마이크 권한을 허용해주세요.\n설정 > Safari(또는 Chrome) > 마이크');
+    btn.classList.remove('listening');btn.textContent='🎤';btn._rec=null;
+  };
+  r.onend=function(){btn.classList.remove('listening');btn.textContent='🎤';btn._rec=null;};
+  r.start();
+}
 render();
 </script>
 <script>
