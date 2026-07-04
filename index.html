@@ -115,10 +115,6 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Samsung One'
 .empty{font-size:14px;color:#bbb;padding:24px 0;text-align:center}
 .fab{position:fixed;bottom:calc(max(env(safe-area-inset-bottom),16px) + 12px);right:20px;width:50px;height:50px;border-radius:25px;background:#1c3d6e;color:#fff;font-size:22px;border:none;box-shadow:0 4px 14px rgba(28,61,110,0.4);cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:100;-webkit-appearance:none}
 .fab:active{transform:scale(0.93)}
-.mic-btn{background:none;border:none;color:rgba(255,255,255,0.65);font-size:19px;cursor:pointer;padding:4px 2px;min-width:30px;line-height:1;flex-shrink:0;transition:color .2s;-webkit-appearance:none}
-.mic-btn:active{color:#fff}
-.mic-btn.listening{color:#ff5252;animation:micpulse 1s ease-in-out infinite}
-@keyframes micpulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.5;transform:scale(1.15)}}
 
 #lockWrap{position:fixed;inset:0;background:#1c3d6e;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px}
 #lockWrap.hidden{display:none}
@@ -179,7 +175,6 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Samsung One'
     <div class="search-box">
       <span style="font-size:16px;opacity:0.7">🔍</span>
       <input type="search" id="qi" placeholder="대상물명, 용도, 주소 검색..." oninput="render()" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
-      <button class="mic-btn" id="micBtn" onclick="startVoice()" title="음성 검색">🎤</button>
     </div>
   </div>
   <div class="filter-bar">
@@ -212,7 +207,7 @@ const ALL={};
       floors:d.fl, height:d.ht, buildings:d.bd, structure:d.st, staircase:d.sc,
       elevator:d.el, parking:d.pk, multi_use:d.mu, fire_plan:d.fp,
       tym:d.tym, twm:d.twm, div:d.div,
-      facility:d.fac||{}, extinguisher:d.ext||{}, spec:d.sp||{},
+      facility:d.fac||{}, multi_facility:d.mf||{}, extinguisher:d.ext||{}, spec:d.sp||{},
       defects:(d.def||[]).map(x=>({equip:x.eq,code:x.cd,content:x.ct,status:x.ss})),
       defect_count:d.dc,
       history:(d.hi||[]).map(R)
@@ -249,8 +244,10 @@ const FAC_TREE=[
     {mid:'기타 활동설비',items:['비상콘센트설비','무선통신보조설비','연소방지설비']},
   ]},
   {big:'기타',icon:'🏗️',mids:[{mid:'',items:['방화문, 방화셔터','비상구,피난통로','방염']}]},
-  {big:'다중이용업소',icon:'🏪',mids:[{mid:'',items:['소화기또는자동확산소화기','간이스프링클러설비','비상경보설비또는자동화재탐지설비','가스누설경보기','피난기구','피난유도선','유도등·유도표지또는비상조명등','휴대용비상조명','방화문','비상구(비상탈출구)','영업장내부피난통로','영상음향차단장치','누전차단기','창문','피난안내도·피난안내영상물','방염물품']}]},
 ];
+// 다중이용업소 16항목: 일반 소방시설(fac)과는 별도 데이터(multi_facility)로만 판정
+// (같은 항목명이 일반 소방시설에도 존재하므로 fac을 참조하면 안 됨 — 버그수정)
+const MULTI_ITEMS=['소화기또는자동확산소화기','간이스프링클러설비','비상경보설비또는자동화재탐지설비','가스누설경보기','피난기구','피난유도선','유도등·유도표지또는비상조명등','휴대용비상조명','방화문','비상구(비상탈출구)','영업장내부피난통로','영상음향차단장치','누전차단기','창문','피난안내도·피난안내영상물','방염물품'];
 function getRec(nm){const b=ALL[nm],no=RECNO[nm];if(!no||no===b.no)return b;return b.history.find(h=>h.no===no)||b;}
 function setF(t){
   FT=t;
@@ -339,7 +336,7 @@ function tBasic(r){
 }
 function tFac(r){
   const fac=r.facility||{};
-  if(!Object.keys(fac).length)return'<p class="empty">소방시설 정보 없음</p>';
+  const mfac=r.multi_facility||{};
   let html='';
   for(const {big,icon,mids} of FAC_TREE){
     if(!mids.some(({items})=>items.some(k=>fac[k])))continue;
@@ -351,6 +348,13 @@ function tFac(r){
       html+=`</div></div>`;
     }
     html+=`</div></div>`;
+  }
+  // 다중이용업소: 별도 데이터(multi_facility)로만 판정 — 일반 소방시설(fac)과 항목명이 겹쳐도 서로 침범하지 않음
+  const mvis=MULTI_ITEMS.filter(k=>mfac[k]);
+  if(mvis.length){
+    html+=`<div class="fac-big"><div class="fac-big-hd"><span class="fac-big-icon">🏪</span><span class="fac-big-name">다중이용업소</span></div><div class="fac-big-body"><div class="fac-mid"><div class="fac-items">`;
+    mvis.forEach(k=>{html+=`<div class="fi"><span class="fn">${k}</span><span class="fok">○</span></div>`;});
+    html+=`</div></div></div></div>`;
   }
   return html||'<p class="empty">소방시설 정보 없음</p>';
 }
@@ -406,34 +410,6 @@ function _redrawDetail(nm){
   card.replaceChild(newDet,det);
 }
 function esc(s){return s.replace(/\\/g,'\\\\').replace(/'/g,"\\'")}
-function startVoice(){
-  var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-  if(!SR){
-    alert('음성 검색을 지원하지 않는 브라우저입니다.\n아이폰: Safari / 안드로이드: Chrome을 사용해주세요.');
-    return;
-  }
-  var btn=document.getElementById('micBtn');
-  var inp=document.getElementById('qi');
-  if(btn._rec){try{btn._rec.stop();}catch(e){}btn._rec=null;return;}
-  var r=new SR();
-  r.lang='ko-KR';
-  r.interimResults=true;
-  r.maxAlternatives=1;
-  btn._rec=r;
-  btn.classList.add('listening');
-  btn.textContent='🔴';
-  r.onresult=function(e){
-    var t=e.results[0][0].transcript;
-    inp.value=t;
-    render();
-  };
-  r.onerror=function(e){
-    if(e.error==='not-allowed')alert('마이크 권한을 허용해주세요.\n설정 > Safari(또는 Chrome) > 마이크');
-    btn.classList.remove('listening');btn.textContent='🎤';btn._rec=null;
-  };
-  r.onend=function(){btn.classList.remove('listening');btn.textContent='🎤';btn._rec=null;};
-  r.start();
-}
 render();
 </script>
 <script>
