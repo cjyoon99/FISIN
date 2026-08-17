@@ -1,458 +1,586 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
+<script>
+// [진단용, 임시] 자바스크립트 오류가 나면 화면 맨 위에 빨간 띠로 바로 보이게 한다.
+// 원인을 찾은 뒤에는 이 블록은 지워도 된다.
+window.onerror = function(msg, url, line, col, err){
+  var d = document.createElement('div');
+  d.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:999999;background:#d64545;color:#fff;padding:10px;font-size:13px;white-space:pre-wrap;';
+  d.textContent = '⚠ JS 오류: ' + msg + ' (줄 ' + line + ', 칸 ' + col + ')';
+  document.documentElement.appendChild(d);
+};
+</script>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="혁신소방 점검대장">
-<meta name="theme-color" content="#1c3d6e">
-<title>혁신소방 점검대장</title>
-<style>
-*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Samsung One','Noto Sans KR','Malgun Gothic',sans-serif;background:#f2f3f7;color:#111;font-size:15px}
-#app{display:flex;flex-direction:column;height:100%;max-width:600px;margin:0 auto}
-.top-bar{background:#1c3d6e;padding:env(safe-area-inset-top,0px) 0 0;color:#fff;flex-shrink:0}
-.top-inner{padding:12px 16px 12px}
-.top-title{font-size:17px;font-weight:700;letter-spacing:-0.3px}
-.top-sub{font-size:12px;opacity:0.7;margin-top:2px}
-.top-date{font-size:11px;opacity:0.5;margin-top:1px}
-.search-area{background:#1c3d6e;padding:0 12px 12px;flex-shrink:0}
-.search-box{display:flex;align-items:center;background:rgba(255,255,255,0.15);border-radius:12px;padding:0 12px;gap:8px;height:44px}
-.search-box input{flex:1;background:none;border:none;color:#fff;font-size:15px;outline:none;font-family:inherit;-webkit-appearance:none}
-.search-box input::placeholder{color:rgba(255,255,255,0.55)}
-.filter-bar{background:#fff;border-bottom:1px solid #e8e8ec;display:flex;flex-shrink:0;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
-.filter-bar::-webkit-scrollbar{display:none}
-.ft{flex-shrink:0;height:44px;padding:0 14px;border:none;background:none;font-size:14px;color:#888;font-family:inherit;cursor:pointer;position:relative;white-space:nowrap;-webkit-appearance:none}
-.ft.on{color:#1c3d6e;font-weight:700}
-.ft.on::after{content:'';position:absolute;bottom:0;left:15%;right:15%;height:2.5px;background:#1c3d6e;border-radius:2px}
-.stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:#e8e8ec;border-bottom:1px solid #e0e0e6;flex-shrink:0}
-.sc{background:#fff;padding:9px 4px;text-align:center}
-.sc-v{font-size:18px;font-weight:700;color:#1c3d6e}
-.sc-l{font-size:10px;color:#999;margin-top:1px}
-.list-wrap{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:8px}
-.rh{font-size:12px;color:#aaa;padding:4px 4px 8px;display:flex;justify-content:space-between;align-items:center}
-.rh-date{font-size:11px;color:#bbb;background:#f0f0f0;padding:2px 8px;border-radius:10px}
-.card{background:#fff;border-radius:14px;margin-bottom:8px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.08)}
-.card.open{box-shadow:0 2px 12px rgba(28,61,110,0.15)}
-.card-head{padding:13px 16px;cursor:pointer;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
-.head-top{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
-.cno{font-size:12px;color:#bbb;min-width:24px;flex-shrink:0}
-.cnm{font-size:16px;font-weight:700;color:#111;flex:1;letter-spacing:-0.3px;word-break:keep-all}
-.badge{font-size:11px;padding:3px 8px;border-radius:20px;font-weight:600;white-space:nowrap;flex-shrink:0}
-.bg{background:#e6f0fb;color:#1460a8}
-.by{background:#f3f0ff;color:#5b4acb}
-.bt-종합{background:#e6f5e6;color:#2e7d32}
-.bt-작동{background:#fff3e0;color:#e65100}
-.bd{background:#fde8e8;color:#c62828}
-.bok{background:#e6f5e6;color:#2e7d32}
-.bhist{background:#f5f5f5;color:#888;font-size:10px}
-.bdiv-pub{background:#e3f0ff;color:#1565c0;font-size:10px}
-.bdiv-gen{background:#f5f5f5;color:#777;font-size:10px}
-.head-sub{font-size:12px;color:#999;margin-top:5px;line-height:1.6;word-break:keep-all}
-.chevron{font-size:12px;color:#ccc;margin-left:auto;transition:transform 0.2s;flex-shrink:0}
-.card.open .chevron{transform:rotate(180deg)}
-.detail{border-top:1px solid #f0f0f5;background:#fafafe}
-.year-bar{display:flex;overflow-x:auto;-webkit-overflow-scrolling:touch;border-bottom:1px solid #e8ecf4;background:#fff;scrollbar-width:none}
-.year-bar::-webkit-scrollbar{display:none}
-.ybtn{flex-shrink:0;height:38px;padding:0 18px;border:none;background:none;font-size:13px;color:#999;font-family:inherit;cursor:pointer;position:relative;font-weight:500;-webkit-appearance:none}
-.ybtn.on{color:#1c3d6e;font-weight:700}
-.ybtn.on::after{content:'';position:absolute;bottom:0;left:10%;right:10%;height:2.5px;background:#1c3d6e;border-radius:2px}
-.dtabs{display:flex;overflow-x:auto;-webkit-overflow-scrolling:touch;padding:10px 12px 0;gap:6px;scrollbar-width:none;background:#fafafe}
-.dtabs::-webkit-scrollbar{display:none}
-.dtab{flex-shrink:0;height:32px;padding:0 14px;border-radius:16px;border:1.5px solid #e0e4ea;background:#f5f5f9;color:#888;font-size:13px;cursor:pointer;font-family:inherit;font-weight:500;-webkit-appearance:none}
-.dtab.on{background:#1c3d6e;border-color:#1c3d6e;color:#fff;font-weight:700}
-.tab-body{padding:12px 14px 20px;background:#fafafe}
-.ig{display:grid;grid-template-columns:1fr 1fr}
-.ir{padding:8px 6px;border-bottom:1px solid #f0f0f5}
-.ir:nth-child(odd):not(.wide){border-right:1px solid #f0f0f5}
-.ir.wide{grid-column:1/-1}
-.il{font-size:11px;color:#aaa;margin-bottom:3px}
-.iv{font-size:13px;color:#111;line-height:1.5;word-break:break-all}
-.map-btns{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap}
-.map-btn{display:inline-flex;align-items:center;gap:4px;padding:5px 10px;border-radius:8px;border:none;font-size:12px;font-weight:600;cursor:pointer;text-decoration:none;font-family:inherit;-webkit-appearance:none;min-height:32px}
-.map-btn.naver{background:#03C75A;color:#fff}
-.map-btn.kakao{background:#FEE500;color:#3C1E1E}
-.map-btn.google{background:#4285F4;color:#fff}
-.map-btn.tmap{background:#1A6DDB;color:#fff}
-.fac-big{margin-bottom:14px}
-.fac-big-hd{display:flex;align-items:center;gap:8px;padding:9px 12px;border-radius:10px 10px 0 0;background:#1c3d6e;color:#fff}
-.fac-big-icon{font-size:16px;flex-shrink:0}
-.fac-big-name{font-size:14px;font-weight:700}
-.fac-big-body{border:1px solid #dde4f0;border-top:none;border-radius:0 0 10px 10px;overflow:hidden}
-.fac-mid{border-bottom:1px solid #eef1f8}
-.fac-mid:last-child{border-bottom:none}
-.fac-mid-hd{font-size:12px;font-weight:700;color:#1c3d6e;background:#eef2fa;padding:6px 12px;border-bottom:1px solid #dde4f0}
-.fac-items{display:flex;flex-direction:column}
-.fi{display:flex;justify-content:space-between;align-items:center;padding:9px 14px;background:#fff;border-bottom:1px solid #f4f5f9}
-.fi:last-child{border-bottom:none}
-.fn{font-size:13px;color:#333;flex:1;line-height:1.4;word-break:keep-all;margin-right:8px}
-.fok{font-size:18px;font-weight:700;color:#2e7d32;flex-shrink:0}
-.eg{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.ei{background:#f5f6fa;border-radius:10px;padding:14px 12px;text-align:center}
-.en{font-size:30px;font-weight:700;color:#1c3d6e}
-.el{font-size:11px;color:#888;margin-top:4px;line-height:1.4}
-.spec-big{margin-bottom:14px}
-.spec-big-hd{background:#1c3d6e;color:#fff;padding:9px 12px;border-radius:10px 10px 0 0;font-size:14px;font-weight:700}
-.spec-big-body{border:1px solid #dde4f0;border-top:none;border-radius:0 0 10px 10px;overflow:hidden}
-.spec-mid-block{border-bottom:1px solid #eef1f8}
-.spec-mid-block:last-child{border-bottom:none}
-.spec-mid-hd{font-size:12px;font-weight:700;color:#1c3d6e;background:#eef2fa;padding:6px 12px;border-bottom:1px solid #dde4f0}
-.spec-items{display:grid;grid-template-columns:1fr 1fr;background:#fff}
-.si{padding:8px 12px;border-bottom:1px solid #f4f5f9}
-.si:nth-child(odd):not(.wide){border-right:1px solid #f4f5f9}
-.si.wide{grid-column:1/-1}
-.si-l{font-size:11px;color:#aaa;margin-bottom:2px}
-.si-v{font-size:13px;color:#111;line-height:1.5;word-break:break-all}
-.di{background:#fff;border:1px solid #eee;border-radius:10px;padding:12px;margin-bottom:8px}
-.di-top{display:flex;align-items:center;gap:7px;margin-bottom:6px;flex-wrap:wrap}
-.dc2{font-size:11px;color:#bbb;background:#f5f5f5;padding:2px 7px;border-radius:10px}
-.de2{font-size:13px;font-weight:700;color:#555}
-.ds{font-size:11px;padding:3px 9px;border-radius:10px;margin-left:auto;white-space:nowrap;font-weight:600;flex-shrink:0}
-.s조치완료{background:#e6f5e6;color:#2e7d32}
-.s조치요함{background:#fde8e8;color:#c62828}
-.dct{font-size:14px;color:#222;line-height:1.6;word-break:keep-all}
-.empty{font-size:14px;color:#bbb;padding:24px 0;text-align:center}
-.fab{position:fixed;bottom:calc(max(env(safe-area-inset-bottom),16px) + 12px);right:20px;width:50px;height:50px;border-radius:25px;background:#1c3d6e;color:#fff;font-size:22px;border:none;box-shadow:0 4px 14px rgba(28,61,110,0.4);cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:100;-webkit-appearance:none}
-.fab:active{transform:scale(0.93)}
-
-#lockWrap{position:fixed;inset:0;background:#1c3d6e;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px}
-#lockWrap.hidden{display:none}
-.lkFire{margin-bottom:12px;display:flex;align-items:center;justify-content:center}
-.lkTitle{font-size:21px;font-weight:700;color:#fff;margin-bottom:6px}
-.lkDesc{font-size:13px;color:rgba(255,255,255,0.55);margin-bottom:28px}
-.lkCard{background:rgba(255,255,255,0.1);border-radius:18px;padding:28px 24px;width:100%;max-width:340px;display:flex;flex-direction:column;gap:12px}
-.lkLbl{font-size:12px;font-weight:600;color:rgba(255,255,255,0.7)}
-.lkPw{height:52px;border-radius:12px;border:1.5px solid rgba(255,255,255,0.25);background:rgba(255,255,255,0.1);color:#fff;font-size:17px;padding:0 16px;font-family:inherit;outline:none;-webkit-appearance:none;letter-spacing:2px}
-.lkPw::placeholder{letter-spacing:0;color:rgba(255,255,255,0.4)}
-.lkPw:focus{border-color:rgba(255,255,255,0.6)}
-.lkRow{display:flex;align-items:center;gap:10px}
-.lkChk{width:18px;height:18px;accent-color:#fff;cursor:pointer;flex-shrink:0}
-.lkChkLbl{font-size:13px;color:rgba(255,255,255,0.7);cursor:pointer}
-.lkOk{height:52px;border-radius:12px;border:none;background:#fff;color:#1c3d6e;font-size:16px;font-weight:700;font-family:inherit;cursor:pointer}
-.lkOk:active{opacity:0.85}
-.lkErr{font-size:13px;text-align:center;color:#ff8080;min-height:18px;font-weight:500}
-</style>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>혁신소방 현장테스트 통합 프로토타입 V16</title>
+<link rel="stylesheet" href="styles.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.2/Sortable.min.js"></script>
+<!-- [v63] 업체(테넌트)별 대상물 마스터 DB를 코드로 구분해 동적으로 로드.
+     URL에 ?tenant=업체코드 를 붙이면 그 업체 데이터를, 없으면 기본값(혁신소방)을 불러온다.
+     새 업체가 생기면: (1) 그 업체 데이터 파일을 평소 버전규칙대로 만들어 올리고
+     (2) 아래 TENANT_FILES에 코드 한 줄만 추가하면 된다. 앱 코드(이 html)는 손댈 필요 없음.
+     10개 코드는 미리 뽑아둔 것 — 혁신소방이 1번(7N040I), 나머지 9개는 다음 고객사용으로 비축.
+     [v63] file 값은 이제 버전이 찍힌 정확한 파일명이 아니라, buildings생성기(V12+)가
+     새 버전을 만들 때마다 자동으로 같이 갱신해주는 "안내판" 파일(...latest.js)을 가리킨다.
+     이 안내판 파일 내용은 그 시점의 최신 버전 파일을 document.write로 불러오는 한 줄뿐이라,
+     새 버전이 나올 때마다 여기(TENANT_FILES)는 다시는 손댈 필요가 없다. 로컬 폴더로 쓰든
+     나중에 깃허브로 옮기든(상대경로 파일 하나 더 부르는 것뿐이라) 동일하게 동작한다. -->
+<script>
+  var TENANT_FILES = {
+    '7N040I': { name:'혁신소방',   file:'참소방_대상물마스터_혁신소방_latest.js' },
+    'ANW4L1': { name:'(테스트용)', file:'참소방_대상물마스터_테스트_latest.js' }, // [V75/F단계] 멀티테넌트 검증용
+    'WWLQVE': { name:'(미배정)',   file:null },
+    '3HGB9N': { name:'(미배정)',   file:null },
+    '1BFVWW': { name:'(미배정)',   file:null },
+    'DTIHP9': { name:'(미배정)',   file:null },
+    '7RJB8S': { name:'(미배정)',   file:null },
+    '8IEF7B': { name:'(미배정)',   file:null },
+    'JN03KB': { name:'(미배정)',   file:null },
+    'AI0XJX': { name:'(미배정)',   file:null }
+  };
+  var DEFAULT_TENANT_CODE = '7N040I'; // 혁신소방
+  var _reqTenant = new URLSearchParams(location.search).get('tenant');
+  var _entry = (_reqTenant && TENANT_FILES[_reqTenant] && TENANT_FILES[_reqTenant].file)
+    ? TENANT_FILES[_reqTenant] : TENANT_FILES[DEFAULT_TENANT_CODE];
+  var CURRENT_TENANT_CODE = (_reqTenant && TENANT_FILES[_reqTenant] && TENANT_FILES[_reqTenant].file) ? _reqTenant : DEFAULT_TENANT_CODE;
+  document.write('<script src="' + _entry.file + '"><\/script>');
+</script>
 </head>
 <body>
-<div id="lockWrap">
-  <div class="lkFire"><svg width="72" height="72" viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <rect x="22" y="28" width="28" height="32" rx="6" fill="#ffffff" opacity="0.95"/>
-  <rect x="18" y="22" width="36" height="10" rx="5" fill="#ffffff" opacity="0.95"/>
-  <circle cx="36" cy="17" r="6" fill="#ffffff" opacity="0.95"/>
-  <circle cx="36" cy="17" r="3" fill="#1c3d6e" opacity="0.6"/>
-  <rect x="10" y="34" width="12" height="8" rx="4" fill="#ffffff" opacity="0.9"/>
-  <rect x="50" y="34" width="12" height="8" rx="4" fill="#ffffff" opacity="0.9"/>
-  <rect x="18" y="56" width="36" height="8" rx="4" fill="#ffffff" opacity="0.95"/>
-  <rect x="28" y="34" width="16" height="16" rx="3" fill="#1c3d6e" opacity="0.25"/>
-  <circle cx="26" cy="32" r="2" fill="#1c3d6e" opacity="0.3"/>
-  <circle cx="46" cy="32" r="2" fill="#1c3d6e" opacity="0.3"/>
-  </svg></div>
-  <div class="lkTitle">혁신소방 점검대장</div>
-  <div class="lkDesc">접근 권한이 필요합니다</div>
-  <div class="lkCard">
-    <div class="lkLbl">비밀번호</div>
-    <input class="lkPw" id="lkPw" type="password" placeholder="비밀번호를 입력하세요"
-      autocomplete="off" onkeydown="if(event.key==='Enter')lkOk()">
-    <div class="lkRow">
-      <input class="lkChk" type="checkbox" id="lkAuto">
-      <label class="lkChkLbl" for="lkAuto">30일 자동 로그인</label>
+
+<header id="appHeader">
+  <div class="header-inner">
+    <div class="htitle">
+      <h1 id="headerTitle">혁신소방 현장테스트</h1>
+      <div class="hsub" id="headerSub">홈</div>
     </div>
-    <button class="lkOk" onclick="lkOk()">확인</button>
-    <div class="lkErr" id="lkErr"></div>
+    <div class="hicons" id="headerIcons"></div>
+  </div>
+</header>
+<div id="syncBanner" class="sync-banner"></div>
+<div id="inspectionBadge" class="inspection-badge" style="display:none;"></div>
+<div id="masterDbWarning" style="display:none;background:#fdecea;color:#b3261e;font-size:12px;text-align:center;padding:8px 16px;font-weight:600;"></div>
+
+<main>
+
+  <!-- ================= 홈 화면 ================= -->
+  <div class="view active" id="view-home">
+    <div class="section-label" style="margin-top:0;display:flex;justify-content:space-between;align-items:center;">
+      <span id="homeWeekTitle">이번 주 진행중 대상물 (일정관리 대시보드 연동)</span>
+      <span style="display:flex;gap:6px;flex-shrink:0;">
+        <button type="button" id="homeWeekPrevBtn" class="icon-btn" title="이전주" style="width:auto;padding:0 10px;">◀</button>
+        <button type="button" id="homeWeekTodayBtn" class="icon-btn" title="이번주로" style="width:auto;padding:0 10px;font-size:11px;">이번주</button>
+        <button type="button" id="homeWeekNextBtn" class="icon-btn" title="다음주" style="width:auto;padding:0 10px;">▶</button>
+      </span>
+    </div>
+    <div class="card" id="scheduleProgressCard" style="padding:10px 12px;"></div>
+    <div id="scheduleHomeList"></div>
+    <div id="homeList"></div>
+    <div class="footer-note">대상물을 고르면 사진대장/불량입력 화면으로 이동합니다. 언제든 우상단 🏠으로 이 화면에 돌아올 수 있습니다.</div>
+    <div class="footer-note" style="color:#bbb;font-size:11px;">빌드: v40_업체코드멀티테넌트 · 2026-07-24 · 업체: <span id="tenantLabel"></span></div>
+  </div>
+
+  <!-- ================= 불량내역 입력 ================= -->
+  <div class="view" id="view-defect">
+    <div class="card">
+      <div style="display:flex;justify-content:flex-end;margin-bottom:8px;">
+        <span id="defectXlsxImportBtn" style="color:var(--accent);font-weight:700;cursor:pointer;font-size:12px;">📥 엑셀에서 불러오기</span>
+        <input type="file" accept=".xlsx" id="defectXlsxImportInput" style="display:none;">
+      </div>
+      <label style="display:flex;justify-content:space-between;align-items:center;">
+        <span>위치 (동 · 층 · 상세위치)</span>
+        <span>
+          <span id="locSetDefaultBtn" style="color:var(--accent);cursor:pointer;margin-right:14px;">★ 기본값으로</span>
+          <span id="locAddToggle">⚙ 위치 관리</span>
+        </span>
+      </label>
+      <!-- [v27] 동 드롭박스 + 층 드롭박스를 매번 2번 클릭하던 것을, 동·층을 합친 드롭박스 1번 클릭 + 그 옆 상세위치 입력으로 축소 -->
+      <div style="display:flex;gap:6px;">
+        <select id="locCombinedSelect" style="flex:1.3;"></select>
+        <input type="text" id="detailLocation" placeholder="예: 3-2반 옆" style="flex:1;">
+        <button type="button" id="detailLocationClearBtn" title="지우기" style="width:32px;flex-shrink:0;border:1px solid var(--border);border-radius:8px;background:#fff;font-size:15px;cursor:pointer;color:var(--muted);">✕</button>
+        <button type="button" id="micBtn" style="width:44px;flex-shrink:0;border:1px solid var(--border);border-radius:8px;background:#fff;font-size:17px;cursor:pointer;">🎤</button>
+      </div>
+      <!-- 동/층 실제 값은 이 숨김 select 2개가 계속 들고 있음(기존 저장 로직 호환용). 화면엔 노출 안 함 -->
+      <select id="wingSelect" style="display:none;"></select>
+      <select id="floorSelect" style="display:none;"></select>
+
+      <div id="locAdvancedPanel" style="display:none;">
+        <div style="display:flex;gap:8px;margin-top:8px;">
+          <button type="button" id="wingEditBtn" class="btn-secondary" style="flex:1;margin:0;font-size:12px;" title="동 이름 오탈자/오류 수정">✎ 동 이름 수정</button>
+          <button type="button" id="floorEditBtn" class="btn-secondary" style="flex:1;margin:0;font-size:12px;" title="층 이름 오탈자/오류 수정">✎ 층 이름 수정</button>
+        </div>
+        <button type="button" id="structEditBtn" class="btn-secondary" style="width:100%;margin:8px 0 0;font-size:12px;" title="동/층을 통째로 추가·수정·삭제">🏗 동/층 구조 편집 (추가·수정·삭제)</button>
+      </div>
+
+      <label>소방시설명 <span style="font-weight:400;color:var(--muted);">(과거 불량이력 빈도순 · 칩을 눌러 끌면 순서 변경, 직접 추가한 항목은 구분선 뒤에 표시)</span></label>
+      <div class="chips" id="equipCatTabs" style="margin-bottom:2px;"></div>
+      <div style="border-top:1px solid var(--border);margin:8px 0;"></div>
+      <div class="chips" id="equipChips"></div>
+      <div id="subEquipWrap" style="display:none;" class="section-divider">
+        <label style="margin:6px 0 4px;">세부 항목 (해당 시 선택 · 끌어서 순서 변경)</label>
+        <div class="chips" id="subEquipChips"></div>
+      </div>
+
+      <div id="subSubEquipWrap" style="display:none;" class="section-divider">
+        <label style="margin:6px 0 4px;">구성부품 (해당 시 선택)</label>
+        <div class="chips" id="subSubEquipChips"></div>
+      </div>
+
+      <div class="section-divider">
+        <label>불량예시 <span style="font-weight:400;color:var(--muted);">(끌어서 순서 변경 · 2개 선택 시 '및'으로 연결)</span></label>
+        <div class="chips" id="defectTagChips"></div>
+      </div>
+
+      <div class="section-divider" id="specChipsWrap" style="display:none;">
+        <label>사양 <span style="font-weight:400;color:var(--muted);">(해당 시 선택 · 불량내용 끝에 괄호로 자동 표시)</span></label>
+        <div class="chips" id="specChips"></div>
+      </div>
+
+      <label style="display:flex;justify-content:space-between;align-items:center;">
+        <span>불량내용</span>
+        <span id="defectClearInlineBtn" style="color:var(--danger);font-weight:700;cursor:pointer;font-size:12px;">✕ 지우기</span>
+      </label>
+      <textarea id="defectContent" placeholder="예: 압력계 손상"></textarea>
+
+      <label>조치결과</label>
+      <div class="chips" id="actionChips"></div>
+
+      <div style="margin-top:10px;">
+        <label>사진 (선택)</label>
+        <label class="photo-btn" id="defectPhotoBtn">📷 사진 촬영 / 선택</label>
+        <input type="file" accept="image/*" capture="environment" id="defectPhotoInput" style="display:none;">
+        <img id="defectPhotoPreview" class="photo-preview">
+      </div>
+
+      <button class="btn-primary" id="defectSaveBtn">이 항목 저장</button>
+    </div>
+
+    <div class="section-label">저장된 불량내역 (<span id="defectCount">0</span>건) <span id="defectSyncBtn" style="font-weight:400;color:var(--accent);cursor:pointer;font-size:12px;">🔄 동기화</span></div>
+    <div id="defectList"></div>
+    <div id="defectEmpty" class="empty">아직 저장된 항목이 없습니다</div>
+
+    <div class="icon-action-row">
+      <button type="button" class="icon-action" id="defectExportBtn"><span class="ia-ic">📤</span><span class="ia-lb">JSON백업</span></button>
+      <button type="button" class="icon-action" id="defectExportXlsxBtn"><span class="ia-ic">📊</span><span class="ia-lb">엑셀출력</span></button>
+      <button type="button" class="icon-action" id="defectTrashOpenBtn"><span class="ia-ic">🗑</span><span class="ia-lb">휴지통</span><span class="ia-badge" id="defectTrashCount">0</span></button>
+      <button type="button" class="icon-action danger" id="defectClearBtn"><span class="ia-ic">🔄</span><span class="ia-lb">초기화</span></button>
+    </div>
+  </div>
+
+  <!-- ================= 점검 사진대장 ================= -->
+  <div class="view" id="view-photolog">
+    <div class="card">
+      <label style="margin:0 0 6px;">사진 등록 방식</label>
+      <div style="display:flex;gap:8px;margin-bottom:12px;">
+        <button type="button" id="captureModeCameraBtn" class="capture-mode-btn">📷 촬영</button>
+        <button type="button" id="captureModeLibraryBtn" class="capture-mode-btn">🖼 사진함에서 선택</button>
+      </div>
+      <label style="display:flex;justify-content:space-between;align-items:center;margin:10px 0 4px;">
+        <span>보고서용 태그 <span style="font-weight:400;color:var(--muted);">(탭하면 그 항목으로 바로 촬영됩니다)</span></span>
+        <span id="tagManageBtn" style="color:var(--accent);font-weight:700;cursor:pointer;font-size:12px;">⚙ 태그 편집</span>
+      </label>
+      <div class="chips" id="tagChips"></div>
+      <div style="display:flex;gap:6px;margin-top:8px;">
+        <input type="text" id="tagCustom" placeholder="+ 직접 입력 (예: 완강기 점검)" style="flex:1;">
+        <button type="button" class="btn-secondary" id="tagCustomShootBtn" style="width:auto;margin:0;padding:0 14px;white-space:nowrap;">📷 촬영</button>
+      </div>
+
+      <div class="section-divider">
+        <label style="margin:0 0 4px;">기타 보관용 사진 태그 <span style="font-weight:400;color:var(--muted);">(공식 보고서 엑셀에는 포함되지 않고, 별도 PDF로만 저장됩니다)</span></label>
+        <div class="chips" id="otherTagChips"></div>
+        <input type="text" id="otherTagCustom" placeholder="+ 직접 입력 (예: 현장 특이사항)" style="margin-top:8px;">
+      </div>
+
+      <div style="font-size:13px;color:var(--muted);text-align:center;margin-top:10px;min-height:18px;" id="tagCurrent">태그를 선택하거나 입력한 뒤 촬영하세요</div>
+
+      <label class="photo-btn filled" id="photoBtn">📷 사진 촬영</label>
+      <input type="file" accept="image/*" capture="environment" id="photoInput" style="display:none;">
+    </div>
+
+    <div class="section-label">
+      <span>사진대장 (보고서용) · <span id="photoCount">0</span>장</span>
+      <span><span id="photoSelectedCount" style="font-weight:400;color:var(--muted);font-size:12px;"></span> <span id="photoSyncBtn" style="font-weight:400;color:var(--accent);cursor:pointer;font-size:12px;">🔄 동기화</span></span>
+    </div>
+    <div id="photoList"></div>
+    <div id="photoEmpty" class="empty">아직 촬영된 사진이 없습니다</div>
+
+    <div class="icon-action-row">
+      <button type="button" class="icon-action" id="photoTrashOpenBtn"><span class="ia-ic">🗑</span><span class="ia-lb">휴지통</span><span class="ia-badge" id="photoTrashCount">0</span></button>
+      <button type="button" class="icon-action accent" id="previewBtn"><span class="ia-ic">✅</span><span class="ia-lb">미리보기</span></button>
+      <button type="button" class="icon-action" id="photoExportXlsxBtn"><span class="ia-ic">📊</span><span class="ia-lb">사진대장출력</span></button>
+      <button type="button" class="icon-action" id="photoExportBtn"><span class="ia-ic">📤</span><span class="ia-lb">JSON백업</span></button>
+      <button type="button" class="icon-action" id="photoSaveToGalleryBtn"><span class="ia-ic">📲</span><span class="ia-lb">사진함저장</span></button>
+      <button type="button" class="icon-action danger" id="photoClearBtn"><span class="ia-ic">🔄</span><span class="ia-lb">초기화</span></button>
+    </div>
+
+    <div id="previewArea">
+      <div class="preview-group report" id="previewGroupReport">
+        <div class="album-cover">
+          <div style="font-weight:700;font-size:15px;" id="previewTitle">소방시설 점검 사진대장 (보고서용)</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:6px;" id="previewBuilding">대상명 :</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:2px;" id="previewDate"></div>
+        </div>
+        <div class="photo-grid" id="previewGrid"></div>
+        <button class="btn-secondary" id="printBtn">🖨 보고서용 인쇄 / PDF로 저장</button>
+      </div>
+    </div>
+
+    <!-- ================= [v49] 기타 보관용 사진 — 사진대장(보고서용)과 완전히 분리된 별도 섹션 ================= -->
+    <div class="section-divider" style="margin-top:24px;border-top:2px dashed var(--border);padding-top:18px;">
+      <div class="section-label" style="margin-top:0;">
+        <span>📁 기타 보관용 사진 · <span id="otherPhotoCount">0</span>장 <span style="font-weight:400;color:var(--muted);font-size:11px;">(공식 보고서와 무관, 별도 보관)</span></span>
+      </div>
+      <div id="otherPhotoList"></div>
+      <div id="otherPhotoEmpty" class="empty">아직 촬영된 기타 보관용 사진이 없습니다</div>
+      <div class="icon-action-row" style="grid-template-columns:repeat(2,1fr);">
+        <button type="button" class="icon-action" id="photoExportOtherPdfBtn"><span class="ia-ic">📄</span><span class="ia-lb">PDF저장</span></button>
+        <button type="button" class="icon-action" id="otherPhotoExportXlsxBtn"><span class="ia-ic">📊</span><span class="ia-lb">엑셀저장</span></button>
+      </div>
+      <div class="preview-group other" id="previewGroupOther" style="margin-top:16px;">
+        <div class="album-cover">
+          <div style="font-weight:700;font-size:15px;">기타 보관용 사진</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:6px;" id="previewBuildingOther">대상명 :</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:2px;" id="previewDateOther"></div>
+        </div>
+        <div class="photo-grid" id="previewGridOther"></div>
+        <button class="btn-secondary" id="printOtherBtn">🖨 기타 보관용 인쇄 / PDF로 저장</button>
+      </div>
+    </div>
+
+    <!-- ================= 공사 사진 대장 (점검 일정과는 무관하지만, [v27] 대상물별로는 구분해 기록) ================= -->
+    <div class="section-divider" style="margin-top:24px;border-top:2px dashed var(--border);padding-top:18px;">
+      <div class="section-label" style="margin-top:0;">🔧 공사(정비) 사진 대장 <span style="font-weight:400;color:var(--muted);font-size:12px;">(점검 일정과 무관하게 독립 기록 · 대상물별로 구분)</span></div>
+      <div class="card">
+        <div style="font-size:12px;color:var(--muted);margin-bottom:8px;">대상물 : <b id="constructionBuildingLabel" style="color:var(--text);">-</b></div>
+        <label>공사명</label>
+        <input type="text" id="constructionSiteName" placeholder="예: 옥내소화전 개폐밸브 교체공사">
+
+        <label>교체 대상 항목 (무엇을 보수/교체했는지)</label>
+        <input type="text" id="constructionItemLabel" placeholder="예: 3층 옥내소화전함 개폐밸브 교체">
+
+        <div style="display:flex;gap:10px;margin-top:10px;">
+          <div style="flex:1;">
+            <label style="margin:0 0 4px;">작업 전</label>
+            <label class="photo-btn" id="constructionBeforeBtn">📷 작업전 촬영</label>
+            <input type="file" accept="image/*" capture="environment" id="constructionBeforeInput" style="display:none;">
+            <img id="constructionBeforePreview" class="photo-preview">
+          </div>
+          <div style="flex:1;">
+            <label style="margin:0 0 4px;">작업 후</label>
+            <label class="photo-btn" id="constructionAfterBtn">📷 작업후 촬영</label>
+            <input type="file" accept="image/*" capture="environment" id="constructionAfterInput" style="display:none;">
+            <img id="constructionAfterPreview" class="photo-preview">
+          </div>
+        </div>
+
+        <button class="btn-primary" id="constructionSaveBtn">이 항목 저장</button>
+      </div>
+
+      <div class="section-label">저장된 항목 (<span id="constructionCount">0</span>건) <span id="constructionSyncBtn" style="font-weight:400;color:var(--accent);cursor:pointer;font-size:12px;">🔄 동기화</span></div>
+      <div id="constructionList"></div>
+      <div id="constructionEmpty" class="empty">아직 저장된 항목이 없습니다</div>
+
+      <div class="icon-action-row" style="grid-template-columns:repeat(2,1fr);">
+        <button type="button" class="icon-action" id="constructionExportXlsxBtn"><span class="ia-ic">📊</span><span class="ia-lb">엑셀출력</span></button>
+        <button type="button" class="icon-action danger" id="constructionClearBtn"><span class="ia-ic">🔄</span><span class="ia-lb">초기화</span></button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ================= 대상물 상세보기 (관리업체 콘솔 12번 화면 반영, index.html 카드 상세 5탭과 동일한 모양/타입) ================= -->
+  <div class="view" id="view-buildingdetail">
+    <div class="card">
+      <div style="margin-bottom:10px;">
+        <div style="font-size:15px;font-weight:600;" id="bdName">-</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px;" id="bdSub">-</div>
+      </div>
+      <div class="dtabs" id="bdTabBar">
+        <button class="dtab on" data-dtab="basic">📋 기준정보</button>
+        <button class="dtab" data-dtab="facility">🧯 소방시설</button>
+        <button class="dtab" data-dtab="extinguisher">🪣 소화기구</button>
+        <button class="dtab" data-dtab="spec">⚙️ 기기사양</button>
+        <button class="dtab" data-dtab="defect">⚠️ 불량사항</button>
+      </div>
+      <div id="bdToolbar" style="display:flex;justify-content:flex-end;gap:14px;margin:2px 0 6px;">
+        <span id="bdHistoryBtn" style="color:var(--muted);font-size:12px;cursor:pointer;">📜 변경이력</span>
+        <span id="bdEditBtn" style="color:var(--accent);font-weight:700;font-size:12px;cursor:pointer;">✏️ 수정</span>
+        <span id="bdSaveBtn" style="color:var(--accent);font-weight:700;font-size:12px;cursor:pointer;display:none;">💾 저장</span>
+        <span id="bdCancelBtn" style="color:var(--danger);font-size:12px;cursor:pointer;display:none;">취소</span>
+      </div>
+      <div class="tab-body">
+        <div class="dpanel active" id="dpanel-basic"></div>
+        <div class="dpanel" id="dpanel-facility"></div>
+        <div class="dpanel" id="dpanel-extinguisher"></div>
+        <div class="dpanel" id="dpanel-spec"></div>
+        <div class="dpanel" id="dpanel-defect"></div>
+      </div>
+    </div>
+    <div class="footer-note">기준정보·소방시설현황·소화기구·기기사양은 관리업체 콘솔에 등록된 값이 기본값이며, 현장에서 "✏️ 수정"으로 직접 고쳐 저장할 수 있습니다(변경 내역은 "📜 변경이력"에서 모두 확인·되돌리기 가능). 불량사항 탭은 이 대상물에 대해 이 기기(팀)에서 실제 저장한 최근 불량내역입니다.</div>
+  </div>
+
+  <div class="overlay" id="bdHistoryOverlay">
+    <div class="sheet" style="max-height:82vh;overflow-y:auto;">
+      <h3>📜 변경 이력</h3>
+      <div class="hint">이 대상물의 기준정보·소방시설·소화기구·기기사양 수정 기록입니다. 되돌리기도 새 이력으로 남습니다.</div>
+      <div id="bdHistoryList"></div>
+      <button class="sheet-close" id="bdHistoryCloseBtn">닫기</button>
+    </div>
+  </div>
+
+  <!-- ================= [v48] 일정관리 대시보드 뷰 (구 별도 파일을 이 안에 병합) ================= -->
+  <div class="view" id="view-schedule">
+
+    <div class="sd-card toolbar">
+      <div class="toolbar-left">
+        <span class="toolbar-label">📥 엑셀 일정 업로드</span>
+        <button class="file-btn" id="xlsxPickBtn">파일 선택</button>
+        <span class="filename" id="xlsxFileName">선택된 파일 없음</span>
+        <input type="file" id="xlsxFileInput" accept=".xlsx" style="display:none;">
+      </div>
+      <div class="toolbar-actions">
+        <div class="toolbar-actions-main">
+          <button class="btn primary" id="addEntryBtn">+ 새 일정</button>
+          <button class="btn success" id="xlsxExportBtn">📤 엑셀 내보내기</button>
+          <button class="btn ghost" id="printCalBtn">🖨️ 달력 인쇄</button>
+        </div>
+        <button class="btn danger outline" id="scheduleResetBtn">🔄 월간 일정 초기화</button>
+      </div>
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-card all"><div class="lb">전체 일정</div><div class="num" id="sumAll">0건</div></div>
+      <div class="summary-card jonghap"><div class="lb">종합점검</div><div class="num" id="sumJonghap">0건</div></div>
+      <div class="summary-card jakdong"><div class="lb">작동점검</div><div class="num" id="sumJakdong">0건</div></div>
+    </div>
+
+    <div class="sd-card progress-card" id="progressCard"></div>
+
+    <div class="sd-card">
+      <div class="cal-nav">
+        <button class="navbtn" id="prevMonthBtn">◀ 이전달</button>
+        <div class="title" id="calTitle">2026년 07월</div>
+        <button class="navbtn" id="nextMonthBtn">다음달 ▶</button>
+      </div>
+      <div class="cal-scroll-wrap">
+        <div class="cal-scroll-inner">
+          <div class="cal-grid" id="calDow"></div>
+          <div class="cal-grid" id="calGrid" style="margin-top:6px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sd-modal-overlay" id="modalOverlay">
+      <div class="sd-modal">
+        <h3 id="modalTitle">일정 수정</h3>
+        <label>대상물명</label>
+        <input type="text" id="fBuilding" placeholder="예: 울산여고">
+        <div class="row2">
+          <div><label>점검유형</label>
+            <select id="fType"><option value="종합점검">종합점검</option><option value="작동점검">작동점검</option></select>
+          </div>
+          <div><label>수행팀</label><input type="text" id="fTeam" value="점검1팀"></div>
+        </div>
+        <div class="row2">
+          <div><label>시작일</label><input type="date" id="fStart"></div>
+          <div><label>기간(일)</label><input type="number" id="fDuration" min="1" value="1"></div>
+        </div>
+        <div class="row2">
+          <div><label>면적(㎡)</label><input type="number" id="fArea" min="0" step="0.01"></div>
+          <div><label>지역</label><input type="text" id="fDistrict" placeholder="예: 남구"></div>
+        </div>
+        <label>비고</label>
+        <input type="text" id="fNote">
+        <label>진척 상태</label>
+        <select id="fStatus"></select>
+        <div class="sd-modal-actions">
+          <button class="btn ghost" id="modalCancelBtn">취소</button>
+          <button class="btn danger" id="modalDeleteBtn">삭제</button>
+          <button class="btn primary" id="modalSaveBtn">저장</button>
+        </div>
+        <div class="sd-modal-actions">
+          <button class="btn success" id="modalStartBtn" style="width:100%;">🚩 이 대상물 점검 시작하기 →</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="footer-note" style="margin-top:20px;">불량내역·사진대장·공사사진대장은 팀 공유 저장소에 저장되어 같은 링크로 접속한 팀원 모두에게 공유됩니다(공유 링크가 아닌, 내 컴퓨터에 저장한 파일을 직접 열면 나에게만 저장되고 공유되지 않습니다).</div>
+</main>
+
+<!-- 빠른 전환 오버레이 -->
+<div class="overlay" id="inspectionTypeOverlay">
+  <div class="sheet">
+    <h3>점검종류 선택</h3>
+    <div class="hint">이번 방문의 점검종류를 선택해주세요. 오늘 이 대상물에 기록하는 불량내역·사진·공사사진에 함께 저장되어, 나중에 점검종류별로 모아볼 수 있습니다.</div>
+    <div class="chips" id="inspectionTypeChips" style="margin-top:10px;">
+      <div class="chip" data-type="종합점검">종합점검</div>
+      <div class="chip" data-type="작동점검">작동점검</div>
+      <div class="chip" data-type="월점검">월점검</div>
+    </div>
+    <button class="sheet-close" id="inspectionTypeCloseBtn">나중에 선택</button>
   </div>
 </div>
 
-<div id="app">
-  <div class="top-bar">
-    <div class="top-inner">
-      <div class="top-title">🚒 혁신소방 점검대장</div>
-      <div class="top-sub" id="top-sub">로딩 중...</div>
-      <div class="top-date" id="top-date">데이터 기준일: 로딩 중...</div>
+  <div class="view" id="view-settings">
+    <div class="section-label">오프라인 데이터 관리</div>
+    <div class="card">
+      <button type="button" class="btn-secondary" id="prefetchWeekBtn" style="width:100%;">📥 이번 주 대상물 오프라인 준비(미리 받아두기)</button>
+      <div id="prefetchStatus" style="font-size:12px;color:var(--muted);margin-top:6px;text-align:center;"></div>
     </div>
-  </div>
-  <div class="search-area">
-    <div class="search-box">
-      <span style="font-size:16px;opacity:0.7">🔍</span>
-      <input type="search" id="qi" placeholder="대상물명, 용도, 주소 검색..." oninput="render()" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+    <div class="card" style="margin-top:12px;">
+      <button type="button" class="btn-secondary" id="clearCacheBtn" style="width:100%;">🗑 오프라인 캐시 비우기</button>
+      <div id="cacheInfoStatus" style="font-size:12px;color:var(--muted);margin-top:6px;text-align:center;"></div>
     </div>
+
+    <div class="card" style="margin-top:12px;">
+      <div class="section-label" style="margin-top:0;">📅 공휴일 자동 반영</div>
+      <label>공공데이터포털 특일정보 API 키</label>
+      <input type="password" id="holidayApiKeyInput" placeholder="data.go.kr API serviceKey 입력">
+      <div style="display:flex;gap:8px;margin-top:8px;">
+        <button type="button" class="btn-secondary" id="holidayApiSaveBtn" style="flex:1;margin:0;">저장</button>
+        <button type="button" class="btn-secondary" id="holidayApiTestBtn" style="flex:1;margin:0;">조회 테스트</button>
+      </div>
+      <div id="holidayApiStatus" class="hint" style="margin-top:8px;">API 키를 저장하면 자동으로 임시공휴일이 반영되고, 실패하면 기본 공휴일 목록을 그대로 사용합니다.</div>
+
+      <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border);">
+        <label>임시공휴일 직접 추가</label>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          <input type="date" id="holidayManualDateInput" style="flex:1;min-width:130px;">
+          <input type="text" id="holidayManualNameInput" placeholder="예: 국무회의 임시공휴일" style="flex:2;min-width:170px;">
+          <button type="button" class="btn-primary" id="holidayAddBtn" style="width:auto;margin:0;padding:0 12px;">추가</button>
+        </div>
+      </div>
+
+      <div style="margin-top:10px;">
+        <div style="font-size:12px;color:var(--muted);margin-bottom:6px;">저장된 임시공휴일</div>
+        <div id="holidayManualList" style="display:flex;flex-wrap:wrap;gap:6px;min-height:26px;"></div>
+      </div>
+    </div>
+
+    <div class="hint" style="margin-top:12px;">오프라인 캐시는 30일이 지나면 자동으로 삭제됩니다. 서버에 이미 저장된 데이터에는 영향이 없습니다.</div>
   </div>
-  <div class="filter-bar">
-    <button class="ft on" onclick="setF('전체')">전체</button>
-    <button class="ft" onclick="setF('작동')">작동점검</button>
-    <button class="ft" onclick="setF('종합')">종합점검</button>
-    <button class="ft" onclick="setF('공공기관')">공공기관</button>
-    <button class="ft" onclick="setF('일반')">일반</button>
-  </div>
-  <div class="stat-row">
-    <div class="sc"><div class="sc-v" id="s1">0</div><div class="sc-l">전체</div></div>
-    <div class="sc"><div class="sc-v" id="s2">0</div><div class="sc-l">검색결과</div></div>
-    <div class="sc"><div class="sc-v" id="s3">0</div><div class="sc-l">불량있음</div></div>
-    <div class="sc"><div class="sc-v" id="s4">0</div><div class="sc-l">종합점검</div></div>
-  </div>
-  <div class="list-wrap">
-    <div class="rh"><span id="rh"></span><span class="rh-date" id="rh-date">기준일 로딩중...</span></div>
-    <div id="list"></div>
+
+<div class="overlay" id="quickOverlay">
+  <div class="sheet">
+    <h3>빠른 전환</h3>
+    <div class="hint">대상물·입력 중이던 내용은 유지된 채 이동합니다</div>
+    <div class="qgrid">
+      <div class="qitem" data-target="photolog"><span class="ic">📷</span>사진대장 촬영</div>
+      <div class="qitem" data-target="defect"><span class="ic">🛠</span>불량내역 입력</div>
+      <div class="qitem" data-target="schedule"><span class="ic">📅</span>일정 대시보드</div>
+      <div class="qitem" data-target="buildingdetail"><span class="ic">🏢</span>대상물 상세보기</div>
+      <div class="qitem" data-target="settings"><span class="ic">⚙️</span>설정</div>
+      <div class="qitem disabled"><span class="ic">📝</span>점검 보고서 작성<br><span style="font-size:10px;">(준비 중)</span></div>
+    </div>
+    <button class="sheet-close" id="sheetClose">닫기</button>
   </div>
 </div>
-<button class="fab" onclick="document.querySelector('.list-wrap').scrollTo({top:0,behavior:'smooth'})">↑</button>
-<script src="data.js"></script>
-<script>
-const ALL={};
-(function(){
-  function R(d){
-    return{
-      no:d.n, year:d.y, type:d.t, usage:d.u, address:d.a, period:d.pd,
-      pm:d.pm, grade:d.g, insurance:d.ins, floor_area:d.fa, build_area:d.ba,
-      floors:d.fl, height:d.ht, buildings:d.bd, structure:d.st, staircase:d.sc,
-      elevator:d.el, parking:d.pk, multi_use:d.mu, fire_plan:d.fp,
-      tym:d.tym, twm:d.twm, div:d.div,
-      facility:d.fac||{}, multi_facility:d.mf||{}, extinguisher:d.ext||{}, spec:d.sp||{},
-      defects:(d.def||[]).map(x=>({equip:x.eq,code:x.cd,content:x.ct,status:x.ss})),
-      defect_count:d.dc,
-      history:(d.hi||[]).map(R)
-    };
-  }
-  const list = FIRE_RAW.data || [];
-  for(const d of list){ ALL[d.nm] = R(d); ALL[d.nm]._no = d.n; }
-  // 기준일
-  const ref = FIRE_RAW.ref || '';
-  const topDate = document.getElementById('top-date');
-  const rhDate  = document.getElementById('rh-date');
-  if(topDate) topDate.textContent = '데이터 기준일: ' + ref;
-  if(rhDate)  rhDate.textContent  = '기준: ' + ref;
-})();
 
-let EXP=null,TAB={},RECNO={},FT='전체';
-const FAC_TREE=[
-  {big:'소화설비',icon:'🧯',mids:[
-    {mid:'소화기구 및 자동소화장치',items:['소화기구(소화기,자확,간이)','주거용주방자동소화장치','상업용주방자동소화장치','캐비닛형자동소화장치','가스·분말·고체자동소화장치']},
-    {mid:'수계소화설비',items:['옥내소화전설비','스프링클러설비','간이스프링클러설비','화재조기진압용스프링클러설비','물분무소화설비','미분무소화설비','포소화설비']},
-    {mid:'가스계·분말 소화설비',items:['이산화탄소소화설비','할론소화설비','할로겐화합물 및 불활성기체 소화설비','분말소화설비','강화액소화설비','고체에어로졸소화설비']},
-    {mid:'옥외소화전',items:['옥외소화전설비']},
-  ]},
-  {big:'경보설비',icon:'🔔',mids:[{mid:'',items:['단독경보형감지기','비상경보설비','자동화재탐지설비 및 시각경보기','비상방송설비','통합감시시설','자동화재속보설비','누전경보기','가스누설경보기']}]},
-  {big:'피난구조설비',icon:'🚪',mids:[
-    {mid:'피난기구',items:['공기안전매트·피난사다리,(간이)완강기·미끄럼대·구조대','다수인피난장비','승강식피난기,하향식피난구용내림식사다리','인명구조기구']},
-    {mid:'유도등 및 유도표지',items:['유도등','유도표지','피난유도선']},
-    {mid:'비상조명',items:['비상조명등','휴대용비상조명등']},
-  ]},
-  {big:'소화용수설비',icon:'💧',mids:[{mid:'',items:['상수도소화용수설비','소화수조 및 저수조']}]},
-  {big:'소화활동설비',icon:'🚒',mids:[
-    {mid:'제연설비',items:['거실제연설비','부속실 등 제연설비']},
-    {mid:'연결설비',items:['연결송수관설비','연결살수설비']},
-    {mid:'기타 활동설비',items:['비상콘센트설비','무선통신보조설비','연소방지설비']},
-  ]},
-  {big:'기타',icon:'🏗️',mids:[{mid:'',items:['방화문, 방화셔터','비상구,피난통로','방염']}]},
-];
-// 다중이용업소 16항목: 일반 소방시설(fac)과는 별도 데이터(multi_facility)로만 판정
-// (같은 항목명이 일반 소방시설에도 존재하므로 fac을 참조하면 안 됨 — 버그수정)
-const MULTI_ITEMS=['소화기또는자동확산소화기','간이스프링클러설비','비상경보설비또는자동화재탐지설비','가스누설경보기','피난기구','피난유도선','유도등·유도표지또는비상조명등','휴대용비상조명','방화문','비상구(비상탈출구)','영업장내부피난통로','영상음향차단장치','누전차단기','창문','피난안내도·피난안내영상물','방염물품'];
-function getRec(nm){const b=ALL[nm],no=RECNO[nm];if(!no||no===b.no)return b;return b.history.find(h=>h.no===no)||b;}
-function setF(t){
-  FT=t;
-  document.querySelectorAll('.ft').forEach(b=>{
-    const l=b.textContent.trim();
-    let on=false;
-    if(t==='전체') on=(l==='전체');
-    else if(t==='작동') on=l.startsWith('작동');
-    else if(t==='종합') on=l.startsWith('종합');
-    else on=(l===t);
-    b.classList.toggle('on',on);
-  });
-  render();
-}
-function getF(){
-  const q=(document.getElementById('qi').value||'').trim().toLowerCase();
-  return Object.entries(ALL).filter(([nm,d])=>{
-    if(FT==='작동'&&d.type!=='작동') return false;
-    if(FT==='종합'&&d.type!=='종합') return false;
-    if(FT==='공공기관'&&d.div!=='공공기관') return false;
-    if(FT==='일반'&&d.div!=='일반') return false;
-    if(!q) return true;
-    return nm.toLowerCase().includes(q)||(d.usage||'').includes(q)||(d.address||'').includes(q);
-  });
-}
-function render(){
-  const f=getF();
-  document.getElementById('s1').textContent=Object.keys(ALL).length;
-  document.getElementById('s2').textContent=f.length;
-  document.getElementById('s3').textContent=f.filter(([,d])=>d.defect_count>0).length;
-  document.getElementById('s4').textContent=f.filter(([,d])=>d.type==='종합').length;
-  document.getElementById('rh').textContent=f.length+'개 대상물';
-  document.getElementById('top-sub').textContent=Object.keys(ALL).length+'개 대상물';
-  document.getElementById('list').innerHTML=f.map(([nm,d])=>cHTML(nm,d)).join('');
-}
-function cHTML(nm,d){
-  const isO=EXP===nm,rec=getRec(nm);
-  const tc=rec.type==='종합'?'bt-종합':'bt-작동';
-  const db=rec.defect_count>0?`<span class="badge bd">불량 ${rec.defect_count}건</span>`:`<span class="badge bok">이상없음</span>`;
-  const hb=d.history&&d.history.length?`<span class="badge bhist">+${d.history.length}년도</span>`:'';
-  const divb=d.div==='공공기관'?`<span class="badge bdiv-pub">공공</span>`:(d.div==='일반'?`<span class="badge bdiv-gen">일반</span>`:'');
-  return`<div class="card${isO?' open':''}" id="c${d._no}">
-<div class="card-head" onclick="tog('${esc(nm)}')">
-  <div class="head-top"><span class="cno">${d._no}</span><span class="cnm">${nm}</span><span class="badge by">${rec.year}${d.history&&d.history.some(h=>h.year===rec.year)?` #${rec.no}`:''}</span><span class="badge bg">${rec.grade||''}</span><span class="badge ${tc}">${rec.type}</span>${db}${hb}${divb}<span class="chevron">▼</span></div>
-  <div class="head-sub">${[rec.usage,rec.floors,rec.address].filter(Boolean).join(' · ')}</div>
-</div>${isO?dHTML(nm,d):''}</div>`;
-}
-function dHTML(nm,d){
-  const rec=getRec(nm),selNo=RECNO[nm]||d._no,all=[d,...(d.history||[])];
-  const ybar=all.length>1?`<div class="year-bar">${all.map((r,i)=>{
-    const isOn=r.no===selNo;
-    const lbl=r.year+(all.filter(x=>x.year===r.year).length>1?` #${r.no}`:'')+(i===0?' ★':'');
-    return`<button class="ybtn${isOn?' on':''}" onclick="setRec('${esc(nm)}','${r.no}');event.stopPropagation()">${lbl}</button>`;
-  }).join('')}</div>`:'';
-  const t=TAB[nm]||'기본';
-  const tabs=[['기본','📋'],['소방시설','🧯'],['소화기구','🪣'],['기기사양','⚙️'],['불량사항','⚠️']];
-  const th=tabs.map(([x,ic])=>`<button class="dtab${x===t?' on':''}" onclick="setTab('${esc(nm)}','${x}');event.stopPropagation()">${ic} ${x}</button>`).join('');
-  const body=t==='기본'?tBasic(rec):t==='소방시설'?tFac(rec):t==='소화기구'?tExt(rec):t==='기기사양'?tSpec(rec):tDef(rec);
-  return`<div class="detail" onclick="event.stopPropagation()">${ybar}<div class="dtabs">${th}</div><div class="tab-body">${body}</div></div>`;
-}
-function tBasic(r){
-  const rows=[
-    ['점검연도',r.year,false],['점검종류',r.type,false],['구분',r.div,false],
-    ['점검월',r.pm,false],
-    ['종합점검월',r.tym,false],['작동점검월',r.twm,false],
-    ['연면적',r.floor_area,false],['건축면적',r.build_area,false],
-    ['층수',r.floors,false],['높이',r.height,false],
-    ['건물동수',r.buildings,false],['건축구조',r.structure,true],
-    ['직통계단',r.staircase,false],['승강기',r.elevator,false],
-    ['주차장',r.parking,true],['화재보험',r.insurance,true],
-    ['점검기간',r.period,true],['소재지',r.address,true],
-    ['대상물용도',r.usage,true],['다중이용업소',r.multi_use,false],
-    ['소방계획서',r.fire_plan,false]
-  ];
-  function rowHTML(l,v,w){
-    if(l==='소재지'&&v){
-      const q=encodeURIComponent(v);
-      const kakao=`https://map.kakao.com/?q=${q}`;
-      const tmap=`tmap://search?name=${q}`;
-      const tmapFallback=`https://tmap.life/${q}`;
-      return`<div class="ir wide"><div class="il">📍 소재지</div><div class="iv">${v}<div class="map-btns"><a class="map-btn kakao" href="${kakao}" target="_blank" rel="noopener">🗺 카카오맵</a><a class="map-btn tmap" href="${tmap}" onclick="setTimeout(()=>{window.location.href='${tmapFallback}'},1500)" rel="noopener">🗺 티맵</a></div></div></div>`;
-    }
-    return`<div class="ir${w?' wide':''}"><div class="il">${l}</div><div class="iv">${v}</div></div>`;
-  }
-  return`<div class="ig">${rows.filter(([,v])=>v).map(([l,v,w])=>rowHTML(l,v,w)).join('')}</div>`;
-}
-function tFac(r){
-  const fac=r.facility||{};
-  const mfac=r.multi_facility||{};
-  let html='';
-  for(const {big,icon,mids} of FAC_TREE){
-    if(!mids.some(({items})=>items.some(k=>fac[k])))continue;
-    html+=`<div class="fac-big"><div class="fac-big-hd"><span class="fac-big-icon">${icon}</span><span class="fac-big-name">${big}</span></div><div class="fac-big-body">`;
-    for(const {mid,items} of mids){
-      const vis=items.filter(k=>fac[k]);if(!vis.length)continue;
-      html+=`<div class="fac-mid">${mid?`<div class="fac-mid-hd">${mid}</div>`:''}<div class="fac-items">`;
-      vis.forEach(k=>{html+=`<div class="fi"><span class="fn">${k}</span><span class="fok">○</span></div>`;});
-      html+=`</div></div>`;
-    }
-    html+=`</div></div>`;
-  }
-  // 다중이용업소: 별도 데이터(multi_facility)로만 판정 — 일반 소방시설(fac)과 항목명이 겹쳐도 서로 침범하지 않음
-  const mvis=MULTI_ITEMS.filter(k=>mfac[k]);
-  if(mvis.length){
-    html+=`<div class="fac-big"><div class="fac-big-hd"><span class="fac-big-icon">🏪</span><span class="fac-big-name">다중이용업소</span></div><div class="fac-big-body"><div class="fac-mid"><div class="fac-items">`;
-    mvis.forEach(k=>{html+=`<div class="fi"><span class="fn">${k}</span><span class="fok">○</span></div>`;});
-    html+=`</div></div></div></div>`;
-  }
-  return html||'<p class="empty">소방시설 정보 없음</p>';
-}
-function tExt(r){
-  const e=r.extinguisher||{},ks=Object.keys(e);
-  if(!ks.length)return'<p class="empty">소화기구 정보 없음</p>';
-  return`<div class="eg">${ks.map(k=>`<div class="ei"><div class="en">${e[k]}</div><div class="el">${k}</div></div>`).join('')}</div>`;
-}
-function tSpec(r){
-  const spec=r.spec;
-  if(!spec||!Object.keys(spec).length)return'<p class="empty">기기사양 정보 없음</p>';
-  let html='';
-  for(const [big,mids] of Object.entries(spec)){
-    const entries=Object.entries(mids);if(!entries.length)continue;
-    html+=`<div class="spec-big"><div class="spec-big-hd">⚙️ ${big}</div><div class="spec-big-body">`;
-    for(const [mid,items] of entries){
-      if(!items||!items.length)continue;
-      html+=`<div class="spec-mid-block">`;
-      if(mid&&mid!=='_'&&mid!=='기타')html+=`<div class="spec-mid-hd">${mid}</div>`;
-      html+=`<div class="spec-items">${items.map(it=>`<div class="si${(it.vl||'').length>14?' wide':''}"><div class="si-l">${it.lb||''}</div><div class="si-v">${it.vl||''}</div></div>`).join('')}</div></div>`;
-    }
-    html+=`</div></div>`;
-  }
-  return html||'<p class="empty">기기사양 정보 없음</p>';
-}
-function tDef(r){
-  if(!r.defects||!r.defects.length)return'<p class="empty">✅ 불량사항 없음</p>';
-  return r.defects.map(df=>`<div class="di"><div class="di-top"><span class="dc2">${df.code||''}</span><span class="de2">${df.equip||''}</span><span class="ds s${df.status||''}">${df.status||''}</span></div><div class="dct">${df.content||''}</div></div>`).join('');
-}
-function tog(nm){
-  EXP=(EXP===nm)?null:nm;
-  if(!RECNO[nm])RECNO[nm]=ALL[nm]._no;
-  render();
-  if(EXP){const el=document.getElementById('c'+ALL[nm]._no);if(el)setTimeout(()=>el.scrollIntoView({behavior:'smooth',block:'start'}),60);}
-}
-function setTab(nm,t){
-  TAB[nm]=t;
-  _redrawDetail(nm);
-}
-function setRec(nm,no){
-  RECNO[nm]=no;
-  _redrawDetail(nm);
-}
-function _redrawDetail(nm){
-  var d=ALL[nm];
-  var card=document.getElementById('c'+d._no);
-  if(!card){render();return;}
-  var det=card.querySelector('.detail');
-  if(!det){render();return;}
-  var wrap=document.createElement('div');
-  wrap.innerHTML=dHTML(nm,d);
-  var newDet=wrap.firstChild;
-  card.replaceChild(newDet,det);
-}
-function esc(s){return s.replace(/\\/g,'\\\\').replace(/'/g,"\\'")}
-render();
-</script>
-<script>
-var LK_KEY='fire2026',LK_PW='hs12!',LK_SS='hsFire',LK_LS='hsFireAuto';
-(function(){
-  var k=new URLSearchParams(location.search).get('key')||'';
-  if(k!==LK_KEY){
-    document.getElementById('lockWrap').innerHTML='<p style="color:rgba(255,255,255,0.4);font-size:14px;text-align:center;padding:40px">접근이 제한된 페이지입니다</p>';
-    return;
-  }
-  // 자동 로그인 확인 (localStorage 만료일)
-  try{
-    var exp=localStorage.getItem(LK_LS);
-    if(exp&&Date.now()<parseInt(exp,10)){
-      document.getElementById('lockWrap').classList.add('hidden');
-      render();return;
-    }
-  }catch(e){}
-  // sessionStorage 확인
-  if(sessionStorage.getItem(LK_SS)==='y'){
-    document.getElementById('lockWrap').classList.add('hidden');
-    render();return;
-  }
-  setTimeout(function(){var el=document.getElementById('lkPw');if(el)el.focus();},150);
-})();
-function lkOk(){
-  var v=document.getElementById('lkPw').value;
-  if(v===LK_PW){
-    var auto=document.getElementById('lkAuto').checked;
-    if(auto){
-      try{localStorage.setItem(LK_LS,String(Date.now()+30*24*60*60*1000));}catch(e){}
-    }
-    sessionStorage.setItem(LK_SS,'y');
-    document.getElementById('lockWrap').classList.add('hidden');
-    render();
-  } else {
-    var err=document.getElementById('lkErr');
-    err.textContent='비밀번호가 틀렸습니다';
-    document.getElementById('lkPw').value='';
-    document.getElementById('lkPw').focus();
-    setTimeout(function(){err.textContent='';},2000);
-  }
-}
-</script>
+<div class="overlay" id="editOverlay">
+  <div class="sheet" style="max-height:88vh;overflow-y:auto;">
+    <h3>불량내역 상세 · 수정</h3>
+    <div class="hint" id="editMeta"></div>
+
+    <label>위치 (동 · 층)</label>
+    <div style="display:flex;gap:8px;">
+      <select id="editWing" style="display:none;"></select>
+      <select id="editFloor"></select>
+    </div>
+
+    <label>상세 위치</label>
+    <input type="text" id="editDetailLocation">
+
+    <label>설비명</label>
+    <input type="text" id="editEquip">
+
+    <label>불량내용</label>
+    <textarea id="editDefectContent"></textarea>
+
+    <label>조치결과</label>
+    <div class="chips" id="editActionChips"></div>
+
+    <label>사진</label>
+    <img id="editPhotoPreview" class="photo-preview" style="display:none;">
+    <label class="photo-btn" id="editPhotoBtn" style="margin-top:8px;">📷 사진 다시 촬영 / 선택</label>
+    <input type="file" accept="image/*" capture="environment" id="editPhotoInput" style="display:none;">
+
+    <button class="btn-primary" id="editSaveBtn">수정 내용 저장</button>
+    <button class="btn-secondary" style="color:var(--danger);" id="editDeleteBtn">🗑 이 항목 삭제(휴지통으로)</button>
+    <button class="sheet-close" id="editClose">닫기</button>
+  </div>
+</div>
+
+<div class="overlay" id="defectTrashOverlay">
+  <div class="sheet" style="max-height:88vh;overflow-y:auto;">
+    <h3>휴지통 (삭제한 불량내역)</h3>
+    <div class="hint">점검 후 회의 때 실수로 지운 항목을 복원할 수 있습니다. "완전삭제"는 되돌릴 수 없습니다.</div>
+    <div id="defectTrashList"></div>
+    <div id="defectTrashEmpty" class="empty">휴지통이 비어 있습니다</div>
+    <button class="sheet-close" id="defectTrashClose">닫기</button>
+  </div>
+</div>
+
+<div class="overlay" id="photoTrashOverlay">
+  <div class="sheet" style="max-height:88vh;overflow-y:auto;">
+    <h3>휴지통 (삭제한 사진)</h3>
+    <div class="hint">실수로 지운 사진을 복원할 수 있습니다. "완전삭제"는 되돌릴 수 없습니다.</div>
+    <div id="photoTrashList"></div>
+    <div id="photoTrashEmpty" class="empty">휴지통이 비어 있습니다</div>
+    <button class="sheet-close" id="photoTrashClose">닫기</button>
+  </div>
+</div>
+
+<div class="overlay" id="tagManageOverlay">
+  <div class="sheet" style="max-height:88vh;overflow-y:auto;">
+    <h3>사진대장 태그 편집</h3>
+    <div class="hint">☰ 부분을 손가락으로 눌러 끌면 순서가 바뀝니다. 글자를 누르면 이름을 수정할 수 있습니다.</div>
+    <div id="tagManageList"></div>
+    <div style="display:flex;gap:6px;margin-top:12px;">
+      <input type="text" id="tagNewInput" placeholder="새 태그 이름" style="flex:1;">
+      <button type="button" id="tagAddBtn" style="width:60px;border:1px solid var(--border);border-radius:8px;background:var(--accent);color:#fff;font-size:14px;">추가</button>
+    </div>
+    <button class="btn-secondary" id="tagResetBtn" style="color:var(--danger);margin-top:14px;">↺ 기본 태그 목록으로 초기화</button>
+    <button class="sheet-close" id="tagManageClose">닫기</button>
+  </div>
+</div>
+
+<div class="overlay" id="tagRenameOverlay">
+  <div class="sheet">
+    <h3>태그 이름 수정</h3>
+    <input type="text" id="tagRenameInput" style="margin-top:6px;">
+    <button class="btn-primary" id="tagRenameSaveBtn">저장</button>
+    <button class="sheet-close" id="tagRenameCancelBtn">취소</button>
+  </div>
+</div>
+
+<div class="overlay" id="structOverlay">
+  <div class="sheet" style="max-height:88vh;overflow-y:auto;">
+    <h3 id="structOverlayTitle">동/층 구조 편집</h3>
+    <div class="hint">동마다 한 줄씩, 그 동의 층을 쉼표로 구분해서 입력하세요 (예: 1F,2F,3F). 동 구분이 없는 건물은 이름 칸을 비우고 한 줄만 입력하면 됩니다. ✕로 그 동을 통째로 삭제할 수 있습니다.</div>
+    <div id="structRows"></div>
+    <button type="button" class="btn-secondary" id="structAddRowBtn" style="margin-top:6px;">+ 동 추가</button>
+    <button class="btn-primary" id="structSaveBtn" style="margin-top:14px;">저장 (팀원과 공유됨)</button>
+    <button class="btn-secondary" id="structResetBtn" style="color:var(--danger);margin-top:8px;">↺ 원래(자동 연동) 값으로 되돌리기</button>
+    <button class="sheet-close" id="structClose">닫기</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+
+<!-- ==== E단계: 모듈화된 JS (실행 순서 = 원본과 동일, 전역 스코프 유지) ==== -->
+<script src="js/utils-sync-cache.js"></script>
+<script src="js/supabase-adapter.js"></script>
+<script src="js/router-schedule-core.js"></script>
+<script src="js/building-detail.js"></script>
+<script src="js/defect-entry-equip.js"></script>
+<script src="js/defect-list-excel-export.js"></script>
+<script src="js/photo-album-construction.js"></script>
+<script src="js/schedule-calendar-init.js"></script>
 </body>
 </html>
